@@ -13,7 +13,6 @@ func NewUserRoutes(h *handler.UserHandler) *UserRoutes {
     return &UserRoutes{handler: h}
 }
 
-// Setup đăng ký các route của user vào gin engine
 func (r *UserRoutes) Setup(engine *gin.Engine) {
     userGroup := engine.Group("/api/v1/users")
     {
