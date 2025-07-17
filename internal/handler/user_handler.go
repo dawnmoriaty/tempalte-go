@@ -1,11 +1,12 @@
 package handler
 
 import (
-    db "GIN/db/sqlc"
-    "GIN/internal/service"
-    "net/http"
+	db "GIN/db/sqlc"
+	"GIN/internal/service"
+	"GIN/pkg/response"
+	"net/http"
 
-    "github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
@@ -19,34 +20,34 @@ func NewUserHandler(svc service.UserService) *UserHandler {
 func (h *UserHandler) CreateUser(c *gin.Context) {
     var req db.CreateUserParams
     if err := c.ShouldBindJSON(&req); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        response.SendError(c, http.StatusBadRequest, "Invalid request data: "+err.Error())
         return
     }
 
     user, err := h.userService.CreateUser(c.Request.Context(), req)
     if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        response.SendError(c, http.StatusInternalServerError, "Failed to create user: "+err.Error())
         return
     }
 
-    c.JSON(http.StatusCreated, user)
+    response.SendSuccess(c, "User created successfully", user)
 }
 func (h *UserHandler) GetUserByEmail(c *gin.Context) {
     email := c.Param("email")
     user, err := h.userService.GetUserByEmail(c.Request.Context(), email)
     if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        response.SendError(c, http.StatusInternalServerError, "Failed to retrieve user: "+err.Error())
         return
     }
 
-    c.JSON(http.StatusOK, user)
+    response.SendSuccess(c, "User retrieved successfully", user)
 }
 func (h *UserHandler) GetAllUsers(c *gin.Context) {
     users, err := h.userService.GetAllUsers(c.Request.Context())
     if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        response.SendError(c, http.StatusInternalServerError, "Failed to retrieve users: "+err.Error())
         return
     }
 
-    c.JSON(http.StatusOK, users)
+    response.SendSuccess(c, "Users retrieved successfully", users)
 }

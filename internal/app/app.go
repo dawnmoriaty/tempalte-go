@@ -6,7 +6,6 @@ import (
 	"GIN/pkg/database" // Import package database của bạn
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type Application struct {
@@ -52,9 +52,9 @@ func (app *Application) Run() error {
 
 	// Chạy server trong một goroutine riêng để không bị block
 	go func() {
-		log.Printf("Server is running on port %s", app.Config.HTTPPort)
+		zap.S().Infof("Server is running on port %s", app.Config.HTTPPort)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("listen: %s\n", err)
+			zap.S().Fatalf("listen: %s\n", err)
 		}
 	}()
 
@@ -64,7 +64,7 @@ func (app *Application) Run() error {
 
 	// Block cho đến khi nhận được tín hiệu
 	<-quit
-	log.Println("Shutting down server...")
+	zap.S().Info("Shutting down server...")
 
 	// Tạo một context với timeout để cho server 5 giây hoàn thành các request hiện tại
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -72,10 +72,10 @@ func (app *Application) Run() error {
 
 	// Gọi Shutdown để tắt server một cách duyên dáng
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatal("Server forced to shutdown:", err)
+		zap.S().Fatal("Server forced to shutdown:", err)
 		return err
 	}
 
-	log.Println("Server exiting")
+	zap.S().Info("Server exiting")
 	return nil
 }
