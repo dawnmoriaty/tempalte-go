@@ -19,6 +19,7 @@ type UserResponse struct {
 	ID        string  `json:"id"`
 	Email     string  `json:"email"`
 	Name      string  `json:"name"`
+	RoleID    int32   `json:"role_id,omitempty"`
 	AvatarUrl string  `json:"avatar_url,omitempty"`
 	CreatedAt string  `json:"created_at"`
 	UpdatedAt string  `json:"updated_at"`
@@ -40,5 +41,6 @@ func MapUserToResponse(user db.User) UserResponse {
 		CreatedAt: user.CreatedAt.Format(time.RFC3339),
 		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
 		DeletedAt: deletedAt,
+		RoleID:    user.RoleID,
 	}
 }

@@ -44,6 +44,11 @@ type Product struct {
 	DeletedAt   pgtype.Timestamptz `db:"deleted_at" json:"deleted_at"`
 }
 
+type Role struct {
+	ID   int32  `db:"id" json:"id"`
+	Name string `db:"name" json:"name"`
+}
+
 type User struct {
 	ID        uuid.UUID          `db:"id" json:"id"`
 	Email     string             `db:"email" json:"email"`
@@ -53,4 +58,5 @@ type User struct {
 	CreatedAt time.Time          `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time          `db:"updated_at" json:"updated_at"`
 	DeletedAt pgtype.Timestamptz `db:"deleted_at" json:"deleted_at"`
+	RoleID    int32              `db:"role_id" json:"role_id"`
 }
