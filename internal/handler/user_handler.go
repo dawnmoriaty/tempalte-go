@@ -50,4 +50,5 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
     }
 
     response.SendSuccess(c, "Users retrieved successfully", users)
+    
 }

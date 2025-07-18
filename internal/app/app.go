@@ -3,6 +3,7 @@ package app
 import (
 	"GIN/configs"
 	"GIN/db/sqlc"
+	"GIN/internal/middleware"
 	"GIN/pkg/database" // Import package database của bạn
 	"context"
 	"errors"
@@ -28,7 +29,11 @@ func NewApplication(cfg *configs.DatabaseConfig) *Application {
 
     // Khởi tạo gin engine
     engine := gin.Default()
+	// === Cấu hình middleware ===
+	engine.Use(middleware.CORSMiddleware())
 
+	// cấu hình endpoint Tự động chuyển hướng nếu URL bị thiếu hoặc thừa dấu gạch chéo ở cuối
+	engine.RedirectTrailingSlash = true
     // === Khởi tạo các module ===
     userModule := NewUserModule(store)
     // Thêm các module khác ở đây...
@@ -69,8 +74,6 @@ func (app *Application) Run() error {
 	// Tạo một context với timeout để cho server 5 giây hoàn thành các request hiện tại
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
-	// Gọi Shutdown để tắt server một cách duyên dáng
 	if err := srv.Shutdown(ctx); err != nil {
 		zap.S().Fatal("Server forced to shutdown:", err)
 		return err
