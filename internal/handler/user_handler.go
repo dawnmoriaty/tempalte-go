@@ -36,6 +36,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 
     response.SendSuccess(c, "User created successfully", user)
 }
+
 func (h *UserHandler) GetUserByEmail(c *gin.Context) {
     email := c.Param("email")
     user, err := h.userService.GetUserByEmail(c.Request.Context(), email)
@@ -46,6 +47,7 @@ func (h *UserHandler) GetUserByEmail(c *gin.Context) {
     responseData := dto.MapUserToResponse(user)
     response.SendSuccess(c, "User retrieved successfully", responseData)
 }
+
 func (h *UserHandler) GetAllUsers(c *gin.Context) {
     users, err := h.userService.GetAllUsers(c.Request.Context())
     if err != nil {

@@ -13,13 +13,20 @@ type DatabaseConfig struct {
 	HTTPPort string `mapstructure:"HTTP_PORT"`
 }
 
+type Config struct {
+	// tránh việc viper không nhận diện được cấu trúc lồng nhau
+	// sử dụng `squash` để gom các trường con vào cấu trúc cha
+	Database DatabaseConfig `mapstructure:",squash"`
+	JWT      JWTConfig      `mapstructure:",squash"`
+}
+
 var (
-	cfg *DatabaseConfig
+	cfg *Config
 )
 
-func LoadConfig() *DatabaseConfig {
+func LoadConfig() *Config {
 	viper.SetConfigFile(".env")
-	viper.ReadInConfig() 
+	viper.ReadInConfig()
 
 	viper.AutomaticEnv()
 
@@ -27,13 +34,16 @@ func LoadConfig() *DatabaseConfig {
 		panic("Error unmarshalling config: " + err.Error())
 	}
 
-	if cfg.Host == "" || cfg.User == "" || cfg.Password == "" || cfg.DBName == "" || cfg.HTTPPort == "" || cfg.Port == "" {
+	if cfg.Database.Host == "" || cfg.Database.User == "" || cfg.Database.Password == "" || cfg.Database.DBName == "" || cfg.Database.HTTPPort == "" || cfg.Database.Port == "" {
 		panic("Database configuration is incomplete. Please check environment variables or .env file.")
 	}
 
 	return cfg
 }
 
-func GetConfig() *DatabaseConfig {
+func GetConfig() *Config {
+	if cfg == nil {
+        LoadConfig() 
+    }
 	return cfg
 }

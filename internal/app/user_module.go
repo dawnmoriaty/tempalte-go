@@ -1,18 +1,19 @@
 package app
 
 import (
-    db "GIN/db/sqlc"
-    "GIN/internal/handler"
-    "GIN/internal/repository"
-    "GIN/internal/routes"
-    "GIN/internal/service"
+	"GIN/configs"
+	db "GIN/db/sqlc"
+	"GIN/internal/handler"
+	"GIN/internal/repository"
+	"GIN/internal/routes"
+	"GIN/internal/service"
 )
 
 type UserModule struct {
     Routes *routes.UserRoutes
 }
 
-func NewUserModule(store db.Store) *UserModule {
+func NewUserModule(store db.Store, cfg *configs.Config) *UserModule {
     userRepo := repository.NewUserRepository(store)
     userService := service.NewUserService(userRepo)
     userHandler := handler.NewUserHandler(userService)

@@ -4,7 +4,7 @@ import (
 	"GIN/configs"
 	"GIN/db/sqlc"
 	"GIN/internal/middleware"
-	"GIN/pkg/database" // Import package database của bạn
+	"GIN/pkg/database" 
 	"context"
 	"errors"
 	"net/http"
@@ -19,12 +19,11 @@ import (
 
 type Application struct {
     Engine *gin.Engine
-    Config *configs.DatabaseConfig // Thay bằng struct config của bạn
-}
+    Config *configs.Config }
 
-func NewApplication(cfg *configs.DatabaseConfig) *Application {
+func NewApplication(cfg *configs.Config) *Application {
     // Kết nối DB và tạo store
-    dbPool := database.Connect(cfg)
+    dbPool := database.Connect(&cfg.Database)
     store := db.NewStore(dbPool)
 
     // Khởi tạo gin engine
@@ -35,7 +34,7 @@ func NewApplication(cfg *configs.DatabaseConfig) *Application {
 	// cấu hình endpoint Tự động chuyển hướng nếu URL bị thiếu hoặc thừa dấu gạch chéo ở cuối
 	engine.RedirectTrailingSlash = true
     // === Khởi tạo các module ===
-    userModule := NewUserModule(store)
+    userModule := NewUserModule(store,cfg)
     // Thêm các module khác ở đây...
 
     // === Đăng ký routes từ các module ===
@@ -51,13 +50,13 @@ func NewApplication(cfg *configs.DatabaseConfig) *Application {
 func (app *Application) Run() error {
 	// Tạo một http.Server từ Gin engine
 	srv := &http.Server{
-		Addr:    ":" + app.Config.HTTPPort,
+		Addr:    ":" + app.Config.Database.HTTPPort,
 		Handler: app.Engine,
 	}
 
 	// Chạy server trong một goroutine riêng để không bị block
 	go func() {
-		zap.S().Infof("Server is running on port %s", app.Config.HTTPPort)
+		zap.S().Infof("Server is running on port %s", app.Config.Database.HTTPPort)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			zap.S().Fatalf("listen: %s\n", err)
 		}
