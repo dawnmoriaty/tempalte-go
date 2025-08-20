@@ -6,11 +6,12 @@ SELECT 'up SQL query';
 -- Kích hoạt extension để dùng hàm tạo UUID
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Dùng chữ thường, kiểu UUID cho ID, và TIMESTAMPTZ cho thời gian
+-- Tạo bảng users ban đầu (chưa có cột role_id)
 CREATE TABLE "users" (
   "id" uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   "email" varchar UNIQUE NOT NULL,
-  "name" varchar NOT NULL,
+  "username" varchar UNIQUE NOT NULL,
+  "name" varchar ,
   "avatar_url" varchar,
   "password" varchar NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT (now()),
@@ -18,6 +19,7 @@ CREATE TABLE "users" (
   "deleted_at" timestamptz
 );
 
+-- Các bảng nghiệp vụ khác
 CREATE TABLE "products" (
   "id" uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   "code" varchar UNIQUE NOT NULL,
@@ -58,3 +60,4 @@ DROP TABLE IF EXISTS "order_lines";
 DROP TABLE IF EXISTS "orders";
 DROP TABLE IF EXISTS "products";
 DROP TABLE IF EXISTS "users";
+DROP EXTENSION IF EXISTS "uuid-ossp";

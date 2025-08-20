@@ -52,11 +52,16 @@ type Role struct {
 type User struct {
 	ID        uuid.UUID          `db:"id" json:"id"`
 	Email     string             `db:"email" json:"email"`
-	Name      string             `db:"name" json:"name"`
+	Username  string             `db:"username" json:"username"`
+	Name      pgtype.Text        `db:"name" json:"name"`
 	AvatarUrl pgtype.Text        `db:"avatar_url" json:"avatar_url"`
 	Password  string             `db:"password" json:"password"`
 	CreatedAt time.Time          `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time          `db:"updated_at" json:"updated_at"`
 	DeletedAt pgtype.Timestamptz `db:"deleted_at" json:"deleted_at"`
-	RoleID    int32              `db:"role_id" json:"role_id"`
+}
+
+type UserRole struct {
+	UserID uuid.UUID `db:"user_id" json:"user_id"`
+	RoleID int32     `db:"role_id" json:"role_id"`
 }

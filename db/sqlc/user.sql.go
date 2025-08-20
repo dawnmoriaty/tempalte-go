@@ -11,85 +11,92 @@ import (
 	"github.com/google/uuid"
 )
 
-const CheckUserExists = `-- name: CheckUserExists :one
-SELECT COUNT(*) > 0 FROM users
-WHERE email = $1
+const AddRoleToUser = `-- name: AddRoleToUser :exec
+INSERT INTO user_roles (user_id, role_id)
+VALUES ($1, $2)
 `
 
-func (q *Queries) CheckUserExists(ctx context.Context, email string) (bool, error) {
-	row := q.db.QueryRow(ctx, CheckUserExists, email)
-	var column_1 bool
-	err := row.Scan(&column_1)
-	return column_1, err
+type AddRoleToUserParams struct {
+	UserID uuid.UUID `db:"user_id" json:"user_id"`
+	RoleID int32     `db:"role_id" json:"role_id"`
+}
+
+func (q *Queries) AddRoleToUser(ctx context.Context, arg AddRoleToUserParams) error {
+	_, err := q.db.Exec(ctx, AddRoleToUser, arg.UserID, arg.RoleID)
+	return err
+}
+
+const CheckEmailExists = `-- name: CheckEmailExists :one
+SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)
+`
+
+func (q *Queries) CheckEmailExists(ctx context.Context, email string) (bool, error) {
+	row := q.db.QueryRow(ctx, CheckEmailExists, email)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const CheckUserNameExists = `-- name: CheckUserNameExists :one
+SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)
+`
+
+func (q *Queries) CheckUserNameExists(ctx context.Context, username string) (bool, error) {
+	row := q.db.QueryRow(ctx, CheckUserNameExists, username)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
 
 const CreateUser = `-- name: CreateUser :one
-INSERT INTO users (
-  email,
-  name,
-  password,
-  role_id
-) VALUES (
-  $1, $2, $3, $4
-) RETURNING id, email, name, avatar_url, password, created_at, updated_at, deleted_at, role_id
+INSERT INTO users (username, email, password)
+VALUES ($1, $2, $3)
+RETURNING id, email, username, name, avatar_url, password, created_at, updated_at, deleted_at
 `
 
 type CreateUserParams struct {
+	Username string `db:"username" json:"username"`
 	Email    string `db:"email" json:"email"`
-	Name     string `db:"name" json:"name"`
 	Password string `db:"password" json:"password"`
-	RoleID   int32  `db:"role_id" json:"role_id"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, CreateUser,
-		arg.Email,
-		arg.Name,
-		arg.Password,
-		arg.RoleID,
-	)
+	row := q.db.QueryRow(ctx, CreateUser, arg.Username, arg.Email, arg.Password)
 	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.Username,
 		&i.Name,
 		&i.AvatarUrl,
 		&i.Password,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
-		&i.RoleID,
 	)
 	return i, err
 }
 
-const GetAllUsers = `-- name: GetAllUsers :many
-SELECT id, email, name, avatar_url, password, created_at, updated_at, deleted_at, role_id FROM users
+const GetRolesForUser = `-- name: GetRolesForUser :many
+SELECT r.name
+FROM roles r
+JOIN user_roles ur ON r.id = ur.role_id
+WHERE ur.user_id = $1
 `
 
-func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
-	rows, err := q.db.Query(ctx, GetAllUsers)
+func (q *Queries) GetRolesForUser(ctx context.Context, userID uuid.UUID) ([]string, error) {
+	rows, err := q.db.Query(ctx, GetRolesForUser, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []User{}
+	items := []string{}
 	for rows.Next() {
-		var i User
-		if err := rows.Scan(
-			&i.ID,
-			&i.Email,
-			&i.Name,
-			&i.AvatarUrl,
-			&i.Password,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.DeletedAt,
-			&i.RoleID,
-		); err != nil {
+		var name string
+		if err := rows.Scan(&name); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, name)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -98,7 +105,7 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 }
 
 const GetUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, name, avatar_url, password, created_at, updated_at, deleted_at, role_id FROM users
+SELECT id, email, username, name, avatar_url, password, created_at, updated_at, deleted_at FROM users
 WHERE email = $1 LIMIT 1
 `
 
@@ -108,50 +115,57 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.Username,
 		&i.Name,
 		&i.AvatarUrl,
 		&i.Password,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
-		&i.RoleID,
 	)
 	return i, err
 }
 
-const GetUserWithRoleByEmail = `-- name: GetUserWithRoleByEmail :one
-SELECT
-  u.id,
-  u.email,
-  u.name,
-  u.password,
-  r.name as role_name
-FROM
-  users u
-JOIN
-  roles r ON u.role_id = r.id
-WHERE
-  u.email = $1
-LIMIT 1
+const GetUserById = `-- name: GetUserById :one
+SELECT id, email, username, name, avatar_url, password, created_at, updated_at, deleted_at FROM users
+WHERE id = $1 LIMIT 1
 `
 
-type GetUserWithRoleByEmailRow struct {
-	ID       uuid.UUID `db:"id" json:"id"`
-	Email    string    `db:"email" json:"email"`
-	Name     string    `db:"name" json:"name"`
-	Password string    `db:"password" json:"password"`
-	RoleName string    `db:"role_name" json:"role_name"`
-}
-
-func (q *Queries) GetUserWithRoleByEmail(ctx context.Context, email string) (GetUserWithRoleByEmailRow, error) {
-	row := q.db.QueryRow(ctx, GetUserWithRoleByEmail, email)
-	var i GetUserWithRoleByEmailRow
+func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (User, error) {
+	row := q.db.QueryRow(ctx, GetUserById, id)
+	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.Username,
 		&i.Name,
+		&i.AvatarUrl,
 		&i.Password,
-		&i.RoleName,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const GetUserByUsername = `-- name: GetUserByUsername :one
+SELECT id, email, username, name, avatar_url, password, created_at, updated_at, deleted_at FROM users
+WHERE username = $1 LIMIT 1
+`
+
+func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
+	row := q.db.QueryRow(ctx, GetUserByUsername, username)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Username,
+		&i.Name,
+		&i.AvatarUrl,
+		&i.Password,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }

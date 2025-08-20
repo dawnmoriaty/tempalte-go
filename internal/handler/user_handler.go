@@ -3,62 +3,49 @@ package handler
 import (
 	"GIN/internal/dto"
 	"GIN/internal/service"
-	"GIN/pkg/response"
-	"net/http"
-
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
-type UserHandler struct {
-    userService service.UserService
+type UserHandler interface {
+	CreateUser(c *gin.Context)
+	Login(c *gin.Context)
 }
 
-func NewUserHandler(svc service.UserService) *UserHandler {
-    return &UserHandler{userService: svc}
+type UserHandlerImpl struct {
+	service service.UserService
 }
 
-func (h *UserHandler) CreateUser(c *gin.Context) {
-    var req dto.CreateUserRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
-        response.SendError(c, http.StatusBadRequest, "Invalid request data: "+err.Error())
-        return
-    }
-    params:= service.CreateUserParams{
-        Email:    req.Email,
-        Name:     req.Name,
-        Password: req.Password,
-    }
-    user, err := h.userService.CreateUser(c.Request.Context(), params)
-    if err != nil {
-        response.SendError(c, http.StatusInternalServerError, "Failed to create user: "+err.Error())
-        return
-    }
-
-    response.SendSuccess(c, "User created successfully", user)
+func (h *UserHandlerImpl) Login(c *gin.Context) {
+	var req dto.LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	res, err := h.service.Login(c.Request.Context(), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, res)
 }
 
-func (h *UserHandler) GetUserByEmail(c *gin.Context) {
-    email := c.Param("email")
-    user, err := h.userService.GetUserByEmail(c.Request.Context(), email)
-    if err != nil {
-        response.SendError(c, http.StatusInternalServerError, "Failed to retrieve user: "+err.Error())
-        return
-    }
-    responseData := dto.MapUserToResponse(user)
-    response.SendSuccess(c, "User retrieved successfully", responseData)
+func (h *UserHandlerImpl) CreateUser(c *gin.Context) {
+	var req dto.RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+	res, err := h.service.Register(c.Request.Context(), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, res)
 }
 
-func (h *UserHandler) GetAllUsers(c *gin.Context) {
-    users, err := h.userService.GetAllUsers(c.Request.Context())
-    if err != nil {
-        response.SendError(c, http.StatusInternalServerError, "Failed to retrieve users: "+err.Error())
-        return
-    }
-    var userResponses []dto.UserResponse
-    for _, user := range users {
-        userResponses = append(userResponses, dto.MapUserToResponse(user))
-    }
-
-    response.SendSuccess(c, "Users retrieved successfully", userResponses)
-
+func NewUserHandler(s service.UserService) UserHandler {
+	return &UserHandlerImpl{
+		service: s,
+	}
 }

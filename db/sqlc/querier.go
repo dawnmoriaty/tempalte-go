@@ -6,14 +6,20 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type Querier interface {
-	CheckUserExists(ctx context.Context, email string) (bool, error)
+	AddRoleToUser(ctx context.Context, arg AddRoleToUserParams) error
+	CheckEmailExists(ctx context.Context, email string) (bool, error)
+	CheckUserNameExists(ctx context.Context, username string) (bool, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
-	GetAllUsers(ctx context.Context) ([]User, error)
+	GetRoleByName(ctx context.Context, name string) (Role, error)
+	GetRolesForUser(ctx context.Context, userID uuid.UUID) ([]string, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
-	GetUserWithRoleByEmail(ctx context.Context, email string) (GetUserWithRoleByEmailRow, error)
+	GetUserById(ctx context.Context, id uuid.UUID) (User, error)
+	GetUserByUsername(ctx context.Context, username string) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)

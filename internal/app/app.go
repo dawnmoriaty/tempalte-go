@@ -4,7 +4,7 @@ import (
 	"GIN/configs"
 	"GIN/db/sqlc"
 	"GIN/internal/middleware"
-	"GIN/pkg/database" 
+	"GIN/pkg/database"
 	"context"
 	"errors"
 	"net/http"
@@ -18,59 +18,43 @@ import (
 )
 
 type Application struct {
-    Engine *gin.Engine
-    Config *configs.Config }
+	Engine *gin.Engine
+	Config *configs.Config
+}
 
 func NewApplication(cfg *configs.Config) *Application {
-    // Kết nối DB và tạo store
-    dbPool := database.Connect(&cfg.Database)
-    store := db.NewStore(dbPool)
+	dbPool := database.Connect(&cfg.Database)
+	store := db.NewStore(dbPool)
+	//redis.ConnectRedis()
+	engine := gin.Default()
 
-    // Khởi tạo gin engine
-    engine := gin.Default()
-	// === Cấu hình middleware ===
 	engine.Use(middleware.CORSMiddleware())
+	userModule := NewUserModule(store)
+	userModule.Routes.Setup(engine)
 
-	// cấu hình endpoint Tự động chuyển hướng nếu URL bị thiếu hoặc thừa dấu gạch chéo ở cuối
-	engine.RedirectTrailingSlash = true
-    // === Khởi tạo các module ===
-    userModule := NewUserModule(store,cfg)
-    // Thêm các module khác ở đây...
-
-    // === Đăng ký routes từ các module ===
-    userModule.Routes.Setup(engine)
-    // Đăng ký các routes khác...
-
-    return &Application{
-        Engine: engine,
-        Config: cfg,
-    }
+	return &Application{
+		Engine: engine,
+		Config: cfg,
+	}
 }
-// graceful shutdown như bên springboot
+
 func (app *Application) Run() error {
-	// Tạo một http.Server từ Gin engine
+
 	srv := &http.Server{
 		Addr:    ":" + app.Config.Database.HTTPPort,
 		Handler: app.Engine,
 	}
 
-	// Chạy server trong một goroutine riêng để không bị block
 	go func() {
 		zap.S().Infof("Server is running on port %s", app.Config.Database.HTTPPort)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			zap.S().Fatalf("listen: %s\n", err)
 		}
 	}()
-
-	// Tạo một channel để lắng nghe tín hiệu tắt từ OS (Ctrl+C)
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
-	// Block cho đến khi nhận được tín hiệu
 	<-quit
 	zap.S().Info("Shutting down server...")
-
-	// Tạo một context với timeout để cho server 5 giây hoàn thành các request hiện tại
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {

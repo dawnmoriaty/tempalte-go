@@ -18,6 +18,7 @@ type Config struct {
 	// sử dụng `squash` để gom các trường con vào cấu trúc cha
 	Database DatabaseConfig `mapstructure:",squash"`
 	JWT      JWTConfig      `mapstructure:",squash"`
+	Redis    RedisConfig    `mapstructure:",squash"`
 }
 
 var (
