@@ -5,6 +5,7 @@ import (
 	"GIN/db/sqlc"
 	"GIN/internal/middleware"
 	"GIN/pkg/database"
+	"GIN/pkg/token"
 	"context"
 	"errors"
 	"net/http"
@@ -29,7 +30,11 @@ func NewApplication(cfg *configs.Config) *Application {
 	engine := gin.Default()
 
 	engine.Use(middleware.CORSMiddleware())
-	userModule := NewUserModule(store, cfg)
+	tokenMaker, err := token.NewJwtMaker(cfg.JWT.AccessTokenSecret)
+	if err != nil {
+		zap.S().Fatalf("cannot create token maker: %v", err)
+	}
+	userModule := NewUserModule(store, cfg, tokenMaker)
 	userModule.Routes.Setup(engine)
 
 	return &Application{

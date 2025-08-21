@@ -10,10 +10,17 @@ import (
 type UserHandler interface {
 	CreateUser(c *gin.Context)
 	Login(c *gin.Context)
+	GetProfile(c *gin.Context)
 }
 
 type UserHandlerImpl struct {
 	service service.UserService
+}
+
+func (h *UserHandlerImpl) GetProfile(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Profile information",
+	})
 }
 
 func (h *UserHandlerImpl) Login(c *gin.Context) {
