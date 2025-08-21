@@ -29,7 +29,7 @@ func NewApplication(cfg *configs.Config) *Application {
 	engine := gin.Default()
 
 	engine.Use(middleware.CORSMiddleware())
-	userModule := NewUserModule(store)
+	userModule := NewUserModule(store, cfg)
 	userModule.Routes.Setup(engine)
 
 	return &Application{

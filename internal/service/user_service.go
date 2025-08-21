@@ -1,12 +1,15 @@
 package service
 
 import (
+	"GIN/configs"
 	db "GIN/db/sqlc"
 	"GIN/internal/dto"
 	"GIN/internal/repository"
 	"GIN/internal/utils"
+	"GIN/pkg/token"
 	"context"
 	"errors"
+	"time"
 )
 
 type UserService interface {
@@ -15,8 +18,10 @@ type UserService interface {
 }
 
 type userServiceImpl struct {
-	repo     repository.UserRepository
-	roleRepo repository.RoleRepository
+	repo       repository.UserRepository
+	roleRepo   repository.RoleRepository
+	tokenMaker token.TokenMaker
+	config     *configs.Config
 }
 
 func (s *userServiceImpl) Register(ctx context.Context, req dto.RegisterRequest) (dto.JwtResponse, error) {
@@ -63,12 +68,28 @@ func (s *userServiceImpl) Register(ctx context.Context, req dto.RegisterRequest)
 	if err != nil {
 		return dto.JwtResponse{}, err
 	}
+	accessionDuration, err := time.ParseDuration(s.config.JWT.AccessTokenLife)
+	if err != nil {
+		return dto.JwtResponse{}, err
+	}
+	accessToken, _, err := s.tokenMaker.CreateToken(user.Username, roles, accessionDuration)
+	if err != nil {
+		return dto.JwtResponse{}, err
+	}
+	refreshTokenDuration, err := time.ParseDuration(s.config.JWT.RefreshTokenLife)
+	if err != nil {
+		return dto.JwtResponse{}, err
+	}
+	refreshToken, _, err := s.tokenMaker.CreateToken(user.Username, roles, refreshTokenDuration)
+	if err != nil {
+		return dto.JwtResponse{}, err
+	}
 	return dto.JwtResponse{
-		AccessToken:  "",
-		RefreshToken: "",
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 		Type:         "Bearer",
 		UserId:       user.ID.String(),
-		UserName:     "",
+		UserName:     user.Username,
 		Email:        user.Email,
 		Role:         roles,
 	}, nil
@@ -89,9 +110,25 @@ func (s *userServiceImpl) Login(ctx context.Context, req dto.LoginRequest) (dto.
 	if len(roles) == 0 {
 		return dto.JwtResponse{}, errors.New("user has no roles assigned")
 	}
+	accessTokenDuration, err := time.ParseDuration(s.config.JWT.AccessTokenLife)
+	if err != nil {
+		return dto.JwtResponse{}, err
+	}
+	accessToken, _, err := s.tokenMaker.CreateToken(user.Username, roles, accessTokenDuration)
+	if err != nil {
+		return dto.JwtResponse{}, err
+	}
+	refreshTokenDuration, err := time.ParseDuration(s.config.JWT.RefreshTokenLife)
+	if err != nil {
+		return dto.JwtResponse{}, err
+	}
+	refreshToken, _, err := s.tokenMaker.CreateToken(user.Username, roles, refreshTokenDuration)
+	if err != nil {
+		return dto.JwtResponse{}, err
+	}
 	return dto.JwtResponse{
-		AccessToken:  "",
-		RefreshToken: "",
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 		Type:         "Bearer",
 		UserId:       user.ID.String(),
 		UserName:     user.Username,
@@ -100,9 +137,14 @@ func (s *userServiceImpl) Login(ctx context.Context, req dto.LoginRequest) (dto.
 	}, nil
 }
 
-func NewUserService(role repository.UserRepository, roleRepo repository.RoleRepository) UserService {
+func NewUserService(role repository.UserRepository,
+	roleRepo repository.RoleRepository,
+	tokenMaker token.TokenMaker,
+	config *configs.Config) UserService {
 	return &userServiceImpl{
-		repo:     role,
-		roleRepo: roleRepo,
+		repo:       role,
+		roleRepo:   roleRepo,
+		tokenMaker: tokenMaker,
+		config:     config,
 	}
 }
