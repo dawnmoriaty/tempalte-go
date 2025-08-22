@@ -5,6 +5,7 @@ import (
 	"GIN/db/sqlc"
 	"GIN/internal/middleware"
 	"GIN/pkg/database"
+	"GIN/pkg/redis"
 	"GIN/pkg/token"
 	"context"
 	"errors"
@@ -26,11 +27,15 @@ type Application struct {
 func NewApplication(cfg *configs.Config) *Application {
 	dbPool := database.Connect(&cfg.Database)
 	store := db.NewStore(dbPool)
-	//redis.ConnectRedis()
+	redis.ConnectRedis()
 	engine := gin.Default()
 
 	engine.Use(middleware.CORSMiddleware())
-	tokenMaker, err := token.NewJwtMaker(cfg.JWT.AccessTokenSecret)
+
+	redisSvc := redis.NewRedisTokenService()
+
+	// Pass the interface to the JWT maker
+	tokenMaker, err := token.NewJwtMaker(cfg.JWT.AccessTokenSecret, redisSvc)
 	if err != nil {
 		zap.S().Fatalf("cannot create token maker: %v", err)
 	}
