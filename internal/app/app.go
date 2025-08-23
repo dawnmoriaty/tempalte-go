@@ -3,6 +3,7 @@ package app
 import (
 	"GIN/configs"
 	"GIN/db/sqlc"
+	_ "GIN/docs"
 	"GIN/internal/middleware"
 	"GIN/pkg/database"
 	"GIN/pkg/redis"
@@ -33,7 +34,6 @@ func NewApplication(cfg *configs.Config) *Application {
 	engine.Use(middleware.CORSMiddleware())
 
 	redisSvc := redis.NewRedisTokenService()
-
 	// Pass the interface to the JWT maker
 	tokenMaker, err := token.NewJwtMaker(cfg.JWT.AccessTokenSecret, redisSvc)
 	if err != nil {

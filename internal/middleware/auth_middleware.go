@@ -17,7 +17,6 @@ const (
 	UserDataKey             = "user_data" // Key để lưu user data từ Redis
 )
 
-// AuthMiddleware với Redis validation
 func AuthMiddlewareWithRedis(tokenMaker token.TokenMaker) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Lấy header
@@ -64,53 +63,6 @@ func AuthMiddlewareWithRedis(tokenMaker token.TokenMaker) gin.HandlerFunc {
 		// Lưu thông tin vào context
 		c.Set(AuthorizationPayloadKey, payload)
 		c.Set(UserDataKey, tokenData)
-		c.Next()
-	}
-}
-
-// Middleware cũ cho backward compatibility
-func AuthMiddleware(tokenMaker token.TokenMaker) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// lấy header
-		authorizationHeader := c.Request.Header.Get(AuthorizationHeaderKey)
-		if len(authorizationHeader) == 0 {
-			err := errors.New("authorization header is not provided")
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": err.Error(),
-			})
-			return
-		}
-
-		// tách header
-		fields := strings.Fields(authorizationHeader)
-		if len(fields) < 2 {
-			err := errors.New("invalid authorization header format")
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": err.Error(),
-			})
-			return
-		}
-
-		// kiểm tra type
-		authorizationType := strings.ToLower(fields[0])
-		if authorizationType != AuthorizationTypeBearer {
-			err := errors.New("unsupported authorization type")
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": err.Error(),
-			})
-			return
-		}
-
-		// xác thực token
-		accessToken := fields[1]
-		payload, err := tokenMaker.VerifyToken(accessToken)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": err.Error(),
-			})
-			return
-		}
-		c.Set(AuthorizationPayloadKey, payload)
 		c.Next()
 	}
 }

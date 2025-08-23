@@ -5,6 +5,8 @@ import (
 	"GIN/internal/middleware"
 	"GIN/pkg/token"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 type UserRoutes struct {
@@ -42,4 +44,5 @@ func (r *UserRoutes) Setup(engine *gin.Engine) {
 			"service": "user-service-with-redis",
 		})
 	})
+	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }

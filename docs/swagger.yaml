@@ -1,0 +1,15 @@
+basePath: /
+info:
+  contact: {}
+  description: API cho hệ thống Auth (JWT + Redis) dùng Gin.
+  title: E-commerce API
+  version: "1.0"
+paths: {}
+schemes:
+- http
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
