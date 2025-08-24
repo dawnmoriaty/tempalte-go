@@ -94,6 +94,7 @@ func (r *RedisTokenServiceImpl) RevokeAllUserTokens(userID string) error {
 		pipe.Del(r.ctx, accessTokenKey, refreshTokenKey)
 	}
 	pipe.Del(r.ctx, userSessionKey)
+	_, err = pipe.Exec(r.ctx)
 	return err
 }
 
